@@ -1,0 +1,6 @@
+sdk.xml
+*.snapshot.json
+ournotes-growth*.json
+.venv/
+__pycache__/
+output/

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Template only. The application key must come from the matching official client.
+     This is not a player password or login token. Do not enter account data here. -->
+<resources>
+  <string name="appid">17703</string>
+  <string name="merchantid">1045</string>
+  <string name="serverid">16841</string>
+  <string name="channelid">2001</string>
+  <string name="one_global_brand_id">5</string>
+  <string name="one_global_area_id">6</string>
+  <string name="one_appkey"></string>
+</resources>

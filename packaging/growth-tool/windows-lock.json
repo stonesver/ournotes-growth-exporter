@@ -1,0 +1,43 @@
+{
+  "pythonVersion": "3.13.15",
+  "platform": "win_amd64",
+  "files": [
+    {
+      "kind": "python",
+      "filename": "python-3.13.15-embeddable-amd64.zip",
+      "sha256": "791ada5e20aba24524f8d939cdeb069976d632a699fe5cb65274b23f4545e68a",
+      "url": "https://www.python.org/ftp/python/3.13.15/python-3.13.15-embeddable-amd64.zip",
+      "checksumSource": "https://www.python.org/ftp/python/3.13.15/python-3.13.15-embeddable-amd64.zip.spdx.json"
+    },
+    {
+      "kind": "wheel",
+      "filename": "cffi-2.1.1-cp313-cp313-win_amd64.whl",
+      "sha256": "1aa5645c30469b09530c4ebca77ebf8f17618293c58f8549cb1a543a50236e7d",
+      "url": "https://files.pythonhosted.org/packages/60/a6/8b149b2c3f2e11aaa1618ef64500b45f50f22c57a977a4dff1aff1f91042/cffi-2.1.1-cp313-cp313-win_amd64.whl"
+    },
+    {
+      "kind": "wheel",
+      "filename": "cryptography-46.0.3-cp311-abi3-win_amd64.whl",
+      "sha256": "a9a3008438615669153eb86b26b61e09993921ebdd75385ddd748702c5adfddb",
+      "url": "https://files.pythonhosted.org/packages/7e/bf/80fbf45253ea585a1e492a6a17efcb93467701fa79e71550a430c5e60df0/cryptography-46.0.3-cp311-abi3-win_amd64.whl"
+    },
+    {
+      "kind": "wheel",
+      "filename": "grpcio-1.76.0-cp313-cp313-win_amd64.whl",
+      "sha256": "f9f7bd5faab55f47231ad8dba7787866b69f5e93bc306e3915606779bbfb4ba8",
+      "url": "https://files.pythonhosted.org/packages/41/80/84087dc56437ced7cdd4b13d7875e7439a52a261e3ab4e06488ba6173b0a/grpcio-1.76.0-cp313-cp313-win_amd64.whl"
+    },
+    {
+      "kind": "wheel",
+      "filename": "pycparser-3.0-py3-none-any.whl",
+      "sha256": "b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992",
+      "url": "https://files.pythonhosted.org/packages/0c/c3/44f3fbbfa403ea2a7c779186dc20772604442dde72947e7d01069cbe98e3/pycparser-3.0-py3-none-any.whl"
+    },
+    {
+      "kind": "wheel",
+      "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8",
+      "url": "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl"
+    }
+  ]
+}
