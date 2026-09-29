@@ -11,14 +11,14 @@ jobs:
       - name: Download the published preview archive
         shell: pwsh
         run: |
-          $url = 'https://github.com/stonesver/ournotes-growth-exporter/releases/download/v0.1.0-alpha.1/ournotes-growth-windows-x64.zip'
+          $url = 'https://github.com/stonesver/ournotes-growth-exporter/releases/download/v0.1.0-alpha.2/ournotes-growth-windows-x64.zip'
           Invoke-WebRequest -Uri $url -OutFile tool.zip
           $actual = (Get-FileHash tool.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne '4e054cb3eabc1b78b891376a96f4bb85b242dee6fd2c4e8c9870c1a0a6da4a8f') { throw 'Release checksum mismatch' }
+          if ($actual -ne 'f769ec1d5acbf9c9c57de24e6e7c46b68fa3ca9bb3264184cc6e1c2a70716080') { throw 'Release checksum mismatch' }
           Expand-Archive tool.zip -DestinationPath extracted
       - name: Run the bundled interpreter without credentials
         shell: pwsh
         run: |
           Set-Location extracted/ournotes-growth-windows-x64
-          & ./runtime/python.exe -I -B launcher.py --self-test
+          & ./runtime/python.exe -I -B launcher.py --self-test --require-bundled-sdk
           if ($LASTEXITCODE -ne 0) { throw 'Portable self-test failed' }

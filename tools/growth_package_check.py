@@ -4,7 +4,7 @@ import json
 import threading
 
 
-def main():
+def main(profile=None):
     import grpc
     from cryptography.hazmat.primitives.asymmetric import padding, rsa
     from tools.growth_login_local import LoginServer
@@ -13,7 +13,7 @@ def main():
     assert key.decrypt(cipher, padding.PKCS1v15()) == b'OFFLINE-CHECK'
     channel = grpc.secure_channel('127.0.0.1:1', grpc.ssl_channel_credentials())
     channel.close()  # Creating a channel without RPCs does not connect.
-    server = LoginServer()
+    server = LoginServer(profile=profile)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -21,7 +21,7 @@ def main():
         connection.request('GET', '/status')
         response = connection.getresponse()
         state = json.loads(response.read())
-        assert response.status == 200 and state['sdkConfigured'] is False
+        assert response.status == 200 and state['sdkConfigured'] == (profile is not None)
         connection.close()
         connection = http.client.HTTPConnection(server.authority, timeout=3)
         connection.request('GET', '/', headers={'Host': 'invalid.example'})
@@ -31,7 +31,7 @@ def main():
         connection.close()
         print(json.dumps({'offlineSelfTest': 'passed', 'rsa': True, 'grpcNativeImport': True,
                           'loopback': True, 'wrongHostRefused': True,
-                          'realAccountUsed': False}))
+                          'sdkConfigured': profile is not None, 'realAccountUsed': False}))
     finally:
         server.shutdown()
         server.server_close()
