@@ -7,6 +7,8 @@
 
 请勿在 Issues 中提交账号、密码、令牌、个人导出或原始抓包。
 
+本版 Mac、Windows 包均通过离线启动与内置配置加载检查：[Windows 验证记录](https://github.com/stonesver/ournotes-growth-exporter/actions/runs/36537134055)。这不包含 Windows 真实账号登录验收。
+
 台港澳服 BHK 邮箱密码账号。电脑直接连接官方服务，不需要 ADB；读取角色卡、留影、乐器、角色评级和 TGW，导出 JSON 后可导入 Our Notes 配卡工具。
 
 ## Windows 便携版

@@ -10,6 +10,6 @@
 
 Mac 仅支持 Apple Silicon，尚未完成 Apple 公证；不要关闭系统安全保护。源码许可不代表官方接口授权。
 
-验证：43 项回归测试通过；Mac 最终 ZIP 解压后通过包含应用配置的离线自检；官方 SDK 初始化成功（未使用玩家凭据）。Windows 新版离线验证结果见本仓库 Actions，离线检查不代表 Windows 真实账号登录验收。
+验证：43 项回归测试通过；Mac 最终 ZIP 解压后通过包含应用配置的离线自检；官方 SDK 初始化成功（未使用玩家凭据）。Windows 新版已从本 Release 下载、校验摘要，并通过含配置加载的[离线启动验证](https://github.com/stonesver/ournotes-growth-exporter/actions/runs/36537134055)。离线检查不代表 Windows 真实账号登录验收。
 
 下载 `SHA256SUMS` 可核对两个 ZIP 的 SHA-256。
