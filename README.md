@@ -5,7 +5,7 @@
 - [下载 Mac / Windows 预览包](https://github.com/stonesver/ournotes-growth-exporter/releases)
 - [打开配卡网站](https://ournotes.stonebg.cn/global/zh-CN/tools/deck-builder/)
 - Mac：Apple Silicon 便携版，约 19.6 MB，已通过本机离线启动自检，尚未完成 Apple 公证。
-- Windows：x64 便携版，约 19.6 MB，离线启动检查结果见仓库 Actions；实际游戏登录未在 Windows 验证。
+- Windows：x64 便携版，约 19.6 MB，已通过 [Windows 运行器离线自检](https://github.com/stonesver/ournotes-growth-exporter/actions/runs/36532122077)；实际游戏登录未在 Windows 验证。
 
 工具包托管在本仓库的 GitHub Releases，网站只提供链接。不要在 Issues 中提交密码、令牌、真实 SDK 配置或原始抓包。
 

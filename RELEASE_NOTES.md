@@ -14,3 +14,11 @@
 Mac 候选从最终 ZIP 解压后通过离线启动自检；未完成 Developer ID 签名与 Apple 公证，不建议关闭系统保护来运行。Windows 发布前未有本机 Windows 验收，后续 GitHub Actions 仅验证无凭据离线启动，不等同于真实游戏登录通过。
 
 本工具不属于官方客户端，开源许可不代表官方接口授权。登录可能使原游戏会话失效，额外验证不支持、不自动重试。导出仅覆盖五类已支持养成，回忆加成等未知项目不补全。
+
+## 发布后验证
+
+Windows 便携包已从本 Release 下载，经 SHA-256 校验后在 GitHub Windows 运行器执行内置解释器的离线自检，全部通过：RSA 运算、gRPC 原生依赖导入、本机 HTTP 服务和错误 Host 拒绝。
+
+[查看 Windows 验证记录](https://github.com/stonesver/ournotes-growth-exporter/actions/runs/36532122077)
+
+这不包含真实账号或游戏 RPC，不代表已完成 Windows 实际游戏登录验收。包内 README 的“尚待 Windows 实机验收”仍适用于真实玩家登录流程。
