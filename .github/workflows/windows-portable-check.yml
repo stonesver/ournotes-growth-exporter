@@ -11,10 +11,10 @@ jobs:
       - name: Download the published preview archive
         shell: pwsh
         run: |
-          $url = 'https://github.com/stonesver/ournotes-growth-exporter/releases/download/v0.1.0-alpha.2/ournotes-growth-windows-x64.zip'
+          $url = 'https://github.com/stonesver/ournotes-growth-exporter/releases/download/v0.1.0-alpha.3/ournotes-growth-windows-x64.zip'
           Invoke-WebRequest -Uri $url -OutFile tool.zip
           $actual = (Get-FileHash tool.zip -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actual -ne 'f769ec1d5acbf9c9c57de24e6e7c46b68fa3ca9bb3264184cc6e1c2a70716080') { throw 'Release checksum mismatch' }
+          if ($actual -ne 'eb349cfa28109f85ae28e42da36f9b6bd09fca6556ebf74e5d14d89e0d2df8ce') { throw 'Release checksum mismatch' }
           Expand-Archive tool.zip -DestinationPath extracted
       - name: Run the bundled interpreter without credentials
         shell: pwsh

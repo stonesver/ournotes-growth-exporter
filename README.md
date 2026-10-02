@@ -2,12 +2,12 @@
 
 已内置台港澳服 BHK 应用配置，下载解压即可使用，无需自行配置。
 
-- [下载 Mac / Windows 预览包](https://github.com/stonesver/ournotes-growth-exporter/releases/tag/v0.1.0-alpha.2)，每个约 19.6 MB。
+- [下载 Mac / Windows 预览包](https://github.com/stonesver/ournotes-growth-exporter/releases/tag/v0.1.0-alpha.3)，每个约 19.6 MB。
 - [打开 Our Notes 配卡工具](https://ournotes.stonebg.cn/global/zh-CN/tools/deck-builder/)。
 
 请勿在 Issues 中提交账号、密码、令牌、个人导出或原始抓包。
 
-本版 Mac、Windows 包均通过离线启动与内置配置加载检查：[Windows 验证记录](https://github.com/stonesver/ournotes-growth-exporter/actions/runs/36537134055)。这不包含 Windows 真实账号登录验收。
+本版使用官方要求的客户端版本 1.0.2，修复读取时因客户端版本过旧而失败的问题。Mac 包已通过启动与内置配置检查；Windows 检查结果见 [Actions](https://github.com/stonesver/ournotes-growth-exporter/actions/workflows/windows-portable-check.yml)。这些检查不包含真实账号登录验收。
 
 台港澳服 BHK 邮箱密码账号。电脑直接连接官方服务，不需要 ADB；读取角色卡、留影、乐器、角色评级和 TGW，导出 JSON 后可导入 Our Notes 配卡工具。
 

@@ -17,6 +17,9 @@ from pathlib import Path
 from tools.growth_export import ExportError, MAX_BYTES, extract_growth, fields
 
 SDK_ROOT = 'https://l11-sdk-login-intl.biligame.net'
+# Official GetServerList requires 1.0.2 as observed on 2026-10-02.
+# Keep SDK, game requests and snapshot provenance on the same version.
+CLIENT_VERSION = '1.0.2'
 GAME_HOSTS = {'l14-prod-hk-all-gs-sirius.gamerfusiontech.com',
               'l12-prod-hk-all-gs-sirius.gamerfusiontech.com'}
 BOOTSTRAP = 'l14-prod-hk-all-gs-sirius.gamerfusiontech.com'
@@ -64,7 +67,7 @@ class Profile:
     merchant_id: str = '1045'
     server_id: str = '16841'
     channel_id: str = '2001'
-    version: str = '1.0.1'
+    version: str = CLIENT_VERSION
 
     @classmethod
     def from_resources(cls, path: Path):
@@ -233,7 +236,7 @@ def string(data, number, *, optional=False):
 def build_login(identity, device_id):
     # Native BuildRequest uses PlatformID 0 and leaves InitialDataGroup empty.
     return b''.join((message(1, identity.uid), message(2, identity.access_token),
-        message(4, 'OurNotes local exporter'), message(5, platform.system()), message(6, '1.0.1'),
+        message(4, 'OurNotes local exporter'), message(5, platform.system()), message(6, CLIENT_VERSION),
         message(7, message(2, device_id)), message(8, 'com.bilibili.sirius'),
         integer(10, 2001), integer(11, 5), integer(12, 6),
         message(13, identity.id_token) if identity.id_token else b''))
@@ -244,7 +247,7 @@ class GameClient:
         if host not in GAME_HOSTS or method not in READ_METHODS:
             raise LoginError('game_target_refused')
         import grpc
-        metadata = [('x-client-version', '1.0.1'), ('x-platform', 'android'),
+        metadata = [('x-client-version', CLIENT_VERSION), ('x-platform', 'android'),
                     ('x-request-id', str(uuid.uuid4()))] + list(auth)
         try:
             with grpc.secure_channel(host + ':443', grpc.ssl_channel_credentials(), options=(
@@ -294,5 +297,5 @@ class GameClient:
         raw = self.rpc(host, 'app.player.PlayerService/GetPlayerData', b'', auth)
         snapshot = extract_growth(raw)
         snapshot['verification'] = 'live_response_not_ui_reconciled'
-        snapshot['source'] = {'kind': 'direct_game_read', 'region': 'TW/HK/MO', 'clientVersion': '1.0.1'}
+        snapshot['source'] = {'kind': 'direct_game_read', 'region': 'TW/HK/MO', 'clientVersion': CLIENT_VERSION}
         return snapshot
