@@ -1,4 +1,5 @@
 sdk.xml
+sdk.bhk.xml
 *.snapshot.json
 ournotes-growth*.json
 .venv/
