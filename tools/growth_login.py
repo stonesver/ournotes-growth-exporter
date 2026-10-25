@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import platform
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -15,13 +16,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from tools.growth_export import ExportError, MAX_BYTES, extract_growth, fields
+from tools.game_service_status import maintenance_metadata
+from tools.global_game_config import (DISCOVERY_VERSION, GLOBAL_SERVERS, export_source,
+                                      recommended_version, valid_version)
 
 SDK_ROOT = 'https://l11-sdk-login-intl.biligame.net'
-# Official GetServerList requires 1.0.2 as observed on 2026-10-02.
-# Keep SDK, game requests and snapshot provenance on the same version.
-CLIENT_VERSION = '1.0.2'
-GAME_HOSTS = {'l14-prod-hk-all-gs-sirius.gamerfusiontech.com',
-              'l12-prod-hk-all-gs-sirius.gamerfusiontech.com'}
+# Compatibility name for existing callers: only the public discovery seed.
+CLIENT_VERSION = DISCOVERY_VERSION
+GAME_HOSTS = frozenset(host for server in GLOBAL_SERVERS.values() for host in server['hosts'])
 BOOTSTRAP = 'l14-prod-hk-all-gs-sirius.gamerfusiontech.com'
 LOGIN_SERVICE = 'app.playerlogin.PlayerLoginService/'
 READ_METHODS = {LOGIN_SERVICE + n for n in ('GetServerList', 'PlayerPreLogin', 'PlayerLogin')}
@@ -29,11 +31,51 @@ READ_METHODS |= {'app.player.PlayerService/GetPlayerData', 'app.masterdata.Maste
 
 
 class LoginError(ValueError):
-    """Only fixed stage names and numeric service codes; never remote error text."""
+    """SDK error with a bounded, privacy-checked diagnostic message."""
 
-    def __init__(self, code, *, reason=None):
+    def __init__(self, code, *, reason=None, diagnostic_message=None, message_state=None, recommended_version=None):
         super().__init__(code)
+        self.recommended_version = recommended_version
         self.reason = reason
+        self.diagnostic_message = diagnostic_message
+        self.message_state = message_state
+
+
+_PRIVATE_ASSIGNMENT = re.compile(
+    r'\b(?:password|pwd|token|secret|cookie|authorization|access[_-]?key|id[_-]?token)\b\s*[:=]\s*[^\s,;]+',
+    re.IGNORECASE)
+_PRIVATE_EMAIL = re.compile(r'[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}')
+_PRIVATE_PHONE = re.compile(r'(?<!\d)(?:\+?\d[\d\s-]{7,}\d)(?!\d)')
+_PRIVATE_URL = re.compile(r'https?://[^\s]+', re.IGNORECASE)
+_PRIVATE_TOKEN = re.compile(r'(?<![A-Za-z0-9])[A-Za-z0-9+/_=-]{24,}(?![A-Za-z0-9])')
+
+
+def diagnostic_sdk_message(message, private_values=()):
+    """Keep SDK wording where possible, masking credentials before it can be logged."""
+    if not isinstance(message, str) or not message.strip():
+        return None, 'missing'
+    if len(message) > 200 or any(ord(char) < 32 or ord(char) == 127 for char in message):
+        return None, 'omitted'
+    if any(char in message for char in '<>{}'):
+        return None, 'omitted'
+    result = message
+    changed = False
+    candidates = set()
+    for value in private_values:
+        if isinstance(value, str) and value:
+            candidates.add(value)
+            candidates.add(urllib.parse.quote(value, safe=''))
+            candidates.add(base64.b64encode(value.encode()).decode())
+    for value in sorted(candidates, key=len, reverse=True):
+        result, count = re.subn(re.escape(value), '[已遮蔽]', result, flags=re.IGNORECASE)
+        changed = changed or bool(count)
+    for pattern in (_PRIVATE_ASSIGNMENT, _PRIVATE_EMAIL, _PRIVATE_PHONE,
+                    _PRIVATE_URL, _PRIVATE_TOKEN):
+        result, count = pattern.subn('[已遮蔽]', result)
+        changed = changed or bool(count)
+    if not result or len(result) > 200:
+        return None, 'omitted'
+    return result, 'redacted' if changed else 'original'
 
 
 def sdk_error_reason(message):
@@ -67,7 +109,8 @@ class Profile:
     merchant_id: str = '1045'
     server_id: str = '16841'
     channel_id: str = '2001'
-    version: str = CLIENT_VERSION
+    version: str = field(default_factory=lambda: CLIENT_VERSION)
+    language: str = 'zh'
 
     @classmethod
     def from_resources(cls, path: Path):
@@ -124,7 +167,7 @@ class SdkClient:
                   'channel_id': p.channel_id, 'app_ver': p.version, 'sdk_ver': '4.2.12',
                   'platform': 'google', 'platform_type': '3', 'net': '', 'operators': '',
                   'model': 'local-export-research', 'pf_ver': '', 'udid': self.device_id,
-                  'dp': '', 'adid': '', 'lang': 'zh', 'sdk_log_type': '1', 'ad_ext': '',
+                  'dp': '', 'adid': '', 'lang': p.language, 'sdk_log_type': '1', 'ad_ext': '',
                   'time_zone': '+08:00', 'isRoot': '0', 'web_code': '6',
                   'timestamp': str(int(time.time() * 1000))}
         if set(extra) & set(params):
@@ -133,7 +176,7 @@ class SdkClient:
         params['sign'] = hashlib.md5((''.join(params[k] for k in sorted(params)) + p.app_key).encode()).hexdigest()
         return params
 
-    def request(self, operation, extra=None):
+    def request(self, operation, extra=None, *, private_values=()):
         if operation not in ('rsa', 'login'):
             raise LoginError('sdk_operation_refused')
         params = self.parameters(extra or {})
@@ -157,8 +200,13 @@ class SdkClient:
         if not isinstance(data, dict) or type(data.get('code')) is not int:
             raise LoginError('invalid_sdk_response')
         if data['code'] != 0:
+            remote_message = data.get('message') or data.get('msg')
+            protected = (tuple(private_values) + tuple((extra or {}).get(k) for k in ('user_id', 'pwd'))
+                         + (self.profile.app_key, self.device_id, params['sign']))
+            diagnostic_message, message_state = diagnostic_sdk_message(remote_message, protected)
             raise LoginError('sdk_service_' + str(data['code']),
-                             reason=sdk_error_reason(data.get('message') or data.get('msg')))
+                             reason=sdk_error_reason(remote_message),
+                             diagnostic_message=diagnostic_message, message_state=message_state)
         if not isinstance(data.get('data'), dict):
             raise LoginError('invalid_sdk_response')
         return data['data']
@@ -186,7 +234,8 @@ class SdkClient:
             ciphertext = key.encrypt((prefix + password).encode(), padding.PKCS1v15())
         except (ValueError, TypeError):
             raise LoginError('sdk_rsa_encryption_failed') from None
-        result = self.request('login', {'user_id': account.strip(), 'pwd': base64.b64encode(ciphertext).decode()})
+        result = self.request('login', {'user_id': account.strip(), 'pwd': base64.b64encode(ciphertext).decode()},
+                              private_values=(account, password))
         # User.accessKey is serialized as access_key. GSCallbackHelper renames
         # it to access_token only in the Android Bundle passed to OneSDK.
         uid = result.get('uid')
@@ -233,21 +282,41 @@ def string(data, number, *, optional=False):
         raise LoginError('invalid_game_text') from None
 
 
-def build_login(identity, device_id):
+def build_login(identity, device_id, version=None):
+    version = version or CLIENT_VERSION
+    if not valid_version(version):
+        raise LoginError('invalid_client_version')
     # Native BuildRequest uses PlatformID 0 and leaves InitialDataGroup empty.
     return b''.join((message(1, identity.uid), message(2, identity.access_token),
-        message(4, 'OurNotes local exporter'), message(5, platform.system()), message(6, CLIENT_VERSION),
+        message(4, 'OurNotes local exporter'), message(5, platform.system()), message(6, version),
         message(7, message(2, device_id)), message(8, 'com.bilibili.sirius'),
         integer(10, 2001), integer(11, 5), integer(12, 6),
         message(13, identity.id_token) if identity.id_token else b''))
 
 
 class GameClient:
+    read_methods = frozenset(READ_METHODS)
+
+    def __init__(self, server_id='global-hmt', version=None):
+        if not isinstance(server_id, str) or server_id not in GLOBAL_SERVERS:
+            raise LoginError('unsupported_game_server')
+        self.server_id = server_id
+        self.server = GLOBAL_SERVERS[server_id]
+        self.client_version = version or CLIENT_VERSION
+        if not valid_version(self.client_version):
+            raise LoginError('invalid_client_version')
+        self.authentication_started = False
+
     def rpc(self, host, method, payload=b'', auth=()):
-        if host not in GAME_HOSTS or method not in READ_METHODS:
+        # Only discovery can use the shared bootstrap. Every player RPC stays
+        # inside the selected region, even if another region is allowlisted.
+        if method == LOGIN_SERVICE + 'GetServerList' and (auth or payload):
+            raise LoginError('game_target_refused')
+        allowed_hosts = {BOOTSTRAP} if method == LOGIN_SERVICE + 'GetServerList' else self.server['hosts']
+        if host not in allowed_hosts or method not in self.read_methods:
             raise LoginError('game_target_refused')
         import grpc
-        metadata = [('x-client-version', CLIENT_VERSION), ('x-platform', 'android'),
+        metadata = [('x-client-version', self.client_version), ('x-platform', 'android'),
                     ('x-request-id', str(uuid.uuid4()))] + list(auth)
         try:
             with grpc.secure_channel(host + ':443', grpc.ssl_channel_credentials(), options=(
@@ -256,25 +325,48 @@ class GameClient:
                                            response_deserializer=lambda b: b)
                 return call(payload, metadata=metadata, timeout=25, wait_for_ready=False)
         except grpc.RpcError as exc:
+            if maintenance_metadata(getattr(exc, 'trailing_metadata', lambda: ())(), exc.details()) is not None:
+                raise LoginError('game_maintenance') from None
+            if exc.details() == 'client update required':
+                raise LoginError('game_client_update_required', recommended_version=recommended_version(
+                    getattr(exc, 'trailing_metadata', lambda: ())())) from None
+            if exc.code() == grpc.StatusCode.UNKNOWN and exc.details() == 'authentication failed':
+                raise LoginError('game_authentication_failed') from None
             raise LoginError('game_rpc_' + exc.code().name.lower()) from None
 
+    def _public_rpc(self, host, method):
+        # Negotiate only before authentication and only on public methods.
+        if self.authentication_started or method not in (LOGIN_SERVICE + 'GetServerList', 'app.masterdata.MasterdataService/Version'):
+            raise LoginError('game_target_refused')
+        for attempt in range(2):
+            try:
+                return self.rpc(host, method)
+            except LoginError as exc:
+                if (attempt or str(exc) != 'game_client_update_required'
+                        or not exc.recommended_version or exc.recommended_version == self.client_version):
+                    raise
+                self.client_version = exc.recommended_version
+
     def discover(self):
-        response = self.rpc(BOOTSTRAP, LOGIN_SERVICE + 'GetServerList')
+        response = self._public_rpc(BOOTSTRAP, LOGIN_SERVICE + 'GetServerList')
         matches = []
         for n, wire, value in fields(response):
             if n != 1 or wire != 2:
                 continue
-            if string(value, 8) == '2' and string(value, 1) == 'TW/HK/MO':
+            if string(value, 8) == self.server['wireId'] and string(value, 1) == self.server['name']:
                 root = urllib.parse.urlsplit(string(value, 3).split('|')[0])
-                if root.scheme != 'https' or root.hostname not in GAME_HOSTS or root.path not in ('', '/') or root.query or root.username or root.password or root.port not in (None, 443):
+                if root.scheme != 'https' or root.hostname not in self.server['hosts'] or root.path not in ('', '/') or root.query or root.fragment or root.username or root.password or root.port not in (None, 443):
                     raise LoginError('unexpected_game_server')
                 matches.append(root.hostname)
         if len(matches) != 1:
-            raise LoginError('tw_server_not_unique')
-        return matches[0]
+            raise LoginError('selected_server_not_unique')
+        host = matches[0]
+        self._public_rpc(host, 'app.masterdata.MasterdataService/Version')
+        return host
 
-    def export(self, identity, device_id, host, progress=lambda s: None):
-        payload = build_login(identity, device_id)
+    def authenticate(self, identity, device_id, host, progress=lambda s: None):
+        self.authentication_started = True
+        payload = build_login(identity, device_id, self.client_version)
         auth = [('x-player-bid', identity.uid)]
         progress('checking_existing_account')
         prelogin = self.rpc(host, LOGIN_SERVICE + 'PlayerPreLogin', payload, auth)
@@ -293,9 +385,13 @@ class GameClient:
         auth += [('x-player-id', player_id), ('x-player-credential', token)]
         if server_device_id:
             auth.append(('x-device-id', server_device_id))
+        return auth
+
+    def export(self, identity, device_id, host, progress=lambda s: None):
+        auth = self.authenticate(identity, device_id, host, progress)
         progress('reading_growth')
         raw = self.rpc(host, 'app.player.PlayerService/GetPlayerData', b'', auth)
         snapshot = extract_growth(raw)
         snapshot['verification'] = 'live_response_not_ui_reconciled'
-        snapshot['source'] = {'kind': 'direct_game_read', 'region': 'TW/HK/MO', 'clientVersion': CLIENT_VERSION}
+        snapshot['source'] = export_source(self.server_id, self.client_version)
         return snapshot

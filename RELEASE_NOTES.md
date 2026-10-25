@@ -1,15 +1,11 @@
-# v0.1.0-alpha.2 — 解压即可使用
+# v0.2.0-alpha.1 — 港澳台、EN、韩服养成导出
 
-已内置台港澳服 BHK 应用配置，无需自行配置。配置用于标识游戏和渠道，不包含任何玩家账号、密码或会话。
+本机登录页可选择港澳台、EN 或韩服。支持 BHK 邮箱密码账号，读取已有角色的角色卡、留影、乐器、角色评级和 TGW，并在 JSON 中记录所属区服。网站导入时请选择同一区服；未读取的数据保持未知，不补成满级。
 
-1. 下载对应 ZIP 并完整解压：Windows x64 打开 `Start.cmd`；Mac Apple Silicon 打开 `Start.command`。两个包均约 19.6 MB，无需安装 Python。
-2. 在本机页面用 BHK 邮箱密码登录，读取后下载养成 JSON。
-3. 回到 [Our Notes 配卡工具](https://ournotes.stonebg.cn/global/zh-CN/tools/deck-builder/)，在「我的卡库 → 从游戏导入我的养成」选择 JSON，核对后应用。
+- 自动协商官方要求的客户端版本；遇到维护、额外验证或账号错误时停止。
+- 公开包仅包含 SDK 配置模板，不包含有效 SDK 应用配置、玩家凭据或账号快照。首次运行需载入已有有效配置；没有配置时可使用网站邮箱登录入口。旧版 v0.1.0-alpha.3 仅支持港澳台。
+- Windows x64 解压后打开 `Start.cmd`；Mac Apple Silicon 打开 `Start.command`。无需另装 Python。Google 游戏授权尚未接通。
 
-登录请求从本机发送到官方服务，不经过资料站服务器。非官方工具存在账号限制风险；登录可能使游戏会话失效，额外验证不支持、不自动重试。回忆加成需自行设置。
+验证：最终 Mac 可执行程序通过离线自检，并用同一探测账号完成三服实际养成读取；源码与 Windows 包的共享模块一致。此验证不代表游戏内逐项人工对账。Windows 桌面真实登录、Mac Developer ID 签名、公证和互联网下载后的 Gatekeeper 验收仍未完成。
 
-Mac 仅支持 Apple Silicon，尚未完成 Apple 公证；不要关闭系统安全保护。源码许可不代表官方接口授权。
-
-验证：43 项回归测试通过；Mac 最终 ZIP 解压后通过包含应用配置的离线自检；官方 SDK 初始化成功（未使用玩家凭据）。Windows 新版已从本 Release 下载、校验摘要，并通过含配置加载的[离线启动验证](https://github.com/stonesver/ournotes-growth-exporter/actions/runs/36537134055)。离线检查不代表 Windows 真实账号登录验收。
-
-下载 `SHA256SUMS` 可核对两个 ZIP 的 SHA-256。
+三个 ZIP 的摘要见 `SHA256SUMS`。完整使用步骤见 [README](https://github.com/stonesver/ournotes-growth-exporter/blob/v0.2.0-alpha.1/README.md)。
