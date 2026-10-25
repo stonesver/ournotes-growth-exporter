@@ -1,6 +1,19 @@
 name: Windows portable offline check
+run-name: Windows portable check ${{ inputs.probe_id || 'offline' }}
 on:
   workflow_dispatch:
+    inputs:
+      probe_id:
+        description: Non-sensitive identifier for this acceptance run
+        type: string
+        default: offline
+      real_account:
+        description: Run authorized three-region reads using a temporary probe secret
+        type: boolean
+        default: false
+concurrency:
+  group: windows-portable-acceptance
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -8,6 +21,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - name: Download the published preview archive
         shell: pwsh
         run: |
@@ -22,3 +36,11 @@ jobs:
           Set-Location extracted/ournotes-growth-windows-x64
           & ./runtime/python.exe -I -B launcher.py --self-test --require-bundled-sdk
           if ($LASTEXITCODE -ne 0) { throw 'Portable self-test failed' }
+      - name: Verify three-region reads with the shipped launcher and bundled SDK
+        if: ${{ inputs.real_account }}
+        shell: pwsh
+        env:
+          GROWTH_WINDOWS_PROBE_JSON: ${{ secrets.GROWTH_WINDOWS_PROBE_JSON }}
+        run: |
+          & ./extracted/ournotes-growth-windows-x64/runtime/python.exe -I -B .github/scripts/verify_windows_release.py extracted/ournotes-growth-windows-x64 tool.zip
+          if ($LASTEXITCODE -ne 0) { throw 'Windows three-region acceptance failed; consult the bounded result above' }
